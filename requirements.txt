@@ -2,7 +2,7 @@ streamlit
 langchain
 langchain-community
 langchain-groq
-pinecone-client
+pinecone
 langchain-pinecone
 python-dotenv
 beautifulsoup4
