@@ -1,0 +1,31 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Streamlit
+.streamlit/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# FAISS Vector Store (Legacy files from previous version)
+faiss_store_hf/
+faiss_store_metadata.pkl
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/

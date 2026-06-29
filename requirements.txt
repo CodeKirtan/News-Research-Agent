@@ -2,7 +2,8 @@ streamlit
 langchain
 langchain-community
 langchain-groq
-faiss-cpu
+pinecone-client
+langchain-pinecone
 python-dotenv
 unstructured
 pandas
