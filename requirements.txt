@@ -5,7 +5,8 @@ langchain-groq
 pinecone-client
 langchain-pinecone
 python-dotenv
-unstructured
+beautifulsoup4
+langchain-classic
 pandas
 pickle-mixin
 sentence-transformers
