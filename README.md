@@ -1,157 +1,137 @@
 <div align="center">
 
-# News Research Agent
+# 📉 News Research Agent
 
-### AI-Powered Multi-Source News Analysis & Question Answering System
+**An AI-Powered Multi-Source News Analysis & Question Answering System**
+
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://python.langchain.com/)
+[![Groq](https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/)
+[![Pinecone](https://img.shields.io/badge/Pinecone-000000?style=for-the-badge&logo=pinecone&logoColor=white)](https://www.pinecone.io/)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/)
 
 </div>
 
 ---
 
-## Overview
+## 📖 Overview
 
-**News Research Agent** is an AI-driven research tool designed to analyze and extract insights from multiple news articles in real time.
+**News Research Agent** is a state-of-sart, AI-driven research tool designed to analyze, extract insights, and summarize multiple news articles in real time. 
 
-Built using **LangChain, Groq LLaMA-3, HuggingFace embeddings, and FAISS**, the system enables users to **ask intelligent questions across multiple sources** and receive **context-aware answers with source attribution**.
+Built on top of **LangChain, Groq's high-speed Llama-3, HuggingFace embeddings, and Pinecone**, the system acts as your personal AI researcher. You can ask intelligent questions across multiple sources, request comprehensive summaries, and receive context-aware answers grounded strictly in the provided articles—virtually eliminating hallucinations.
 
-The goal is to reduce information overload and transform raw news into **actionable insights**.
-
----
-
-## Key Features
-
-* 🌐 **Multi-URL Processing** → Analyze up to 3 news articles simultaneously
-* 🧹 **Smart Content Filtering** → Removes ads, cookie popups, and irrelevant text
-* 🤖 **AI-Powered Q&A** → Natural language querying using LLaMA-3 (70B)
-* 📊 **Relevant Context Display** → Top 3 most relevant chunks before answers
-* 🔗 **Source Attribution** → Direct links to original articles
-* 🎨 **Interactive UI** → Clean and engaging Streamlit interface
+The ultimate goal? To reduce information overload and transform raw news into **actionable insights**.
 
 ---
 
-## System Architecture
+## ✨ Key Features
 
-```
-URLs Input → Content Loader → Text Cleaning
-        ↓
-   Chunking (Text Splitter)
-        ↓
- Embeddings (HuggingFace)
-        ↓
-   FAISS Vector Store
-        ↓
-User Query → Retrieval → Groq LLM → Answer + Sources
-```
+* 🌐 **Multi-URL Processing**: Analyze up to 3 complex news articles simultaneously.
+* 🧹 **Smart Content Filtering**: Intelligently identifies and removes boilerplate junk (ads, cookie popups, menus) so the AI only reads what matters.
+* 🤖 **Lightning-Fast AI Q&A**: Employs Groq's blazing-fast inference for `Llama-3.3-70b-versatile` to answer your natural language queries instantly.
+* 📝 **One-Click Summarization**: Automatically synthesizes and summarizes key points from all processed articles.
+* ☁️ **Cloud Vector Storage**: Uses Pinecone for robust indexing, fast similarity search, and instantaneous retrieval.
+* 🔗 **Source Attribution**: Always shows its work! Provides direct references and expands source text for full transparency.
+* 🕒 **Auto-Cleanup Daemon**: A background thread automatically manages database hygiene by deleting sessions older than 24 hours.
 
 ---
 
-## Tech Stack
+## 🏗️ System Architecture
 
-* **Frontend**: Streamlit
-* **LLM**: Groq API (LLaMA 3 – 70B)
-* **Framework**: LangChain
-* **Embeddings**: HuggingFace Sentence Transformers
-* **Vector Store**: FAISS
-* **Document Loader**: UnstructuredURLLoader
-* **Environment Management**: .env for API keys
-
----
-
-## Project Structure
-
-```
-News-Research-Agent/
-│
-├── app.py
-├── faiss_store_hf/
-├── faiss_store_metadata.pkl
-├── requirements.txt
-├── .env
-└── README.md
+```mermaid
+flowchart TD
+    A[User Inputs URLs] --> B[WebBaseLoader]
+    B --> C[Text Cleaning & Filtering]
+    C --> D[Chunking via TextSplitter]
+    D --> E[HuggingFace Embeddings]
+    E --> F[(Pinecone Vector DB)]
+    
+    G[User Asks Question] --> H[Conversational Retriever]
+    H --> F
+    F --> I[Groq Llama-3 LLM]
+    I --> J[Precise Answer + Source Citations]
+    
+    K[Summarize Button] --> L[Extract Spread Context]
+    L --> I
 ```
 
 ---
 
-## Usage
+## 🛠️ Technology Stack
 
-1. Paste up to **3 news article URLs** in the sidebar
-2. Click **"Process URLs"** to load and index content
-3. Enter your query in natural language
-4. View:
-
-   * Top relevant text chunks
-   * AI-generated answer
-   * Source references
-
----
-
-## Example
-
-**Question:**
-
-> What economic reforms were discussed in the articles?
-
-**Answer:**
-The articles highlight fiscal policy changes, increased capital expenditure, a focus on manufacturing, and initiatives to boost digital transactions.
-
-**Sources:**
-
-* Article 1
-* Article 2
+* **Frontend UI**: [Streamlit](https://streamlit.io/)
+* **Large Language Model (LLM)**: [Groq API](https://groq.com/) (Llama-3.3-70b-versatile)
+* **Framework**: [LangChain](https://python.langchain.com/)
+* **Embeddings Model**: HuggingFace (`sentence-transformers/all-MiniLM-L6-v2`)
+* **Vector Database**: Pinecone
+* **Web Scraping**: LangChain `WebBaseLoader` (BeautifulSoup4)
+* **Memory**: `ConversationBufferMemory`
 
 ---
 
-## Engineering Approach
+## 🚀 Getting Started
 
-### Retrieval-Augmented Generation (RAG)
+### Prerequisites
 
-* Combines document retrieval with LLM reasoning
-* Ensures context-grounded and reliable answers
+You need Python 3.9+ and API keys for the following services:
+- **Groq API Key**: Get it from [Groq Console](https://console.groq.com/keys)
+- **HuggingFace Hub Token**: Get it from [HuggingFace](https://huggingface.co/settings/tokens)
+- **Pinecone API Key & Index Name**: Get it from [Pinecone Console](https://app.pinecone.io/)
 
-### Data Cleaning Pipeline
+### Installation & Setup
 
-* Removes noisy web elements (ads, cookies, prompts)
-* Improves embedding quality and retrieval accuracy
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/your-username/News-Research-Agent.git
+   cd News-Research-Agent
+   ```
 
-### Efficient Retrieval
+2. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-* FAISS enables fast similarity search
-* Top-k retrieval ensures relevant context selection
+3. **Configure Environment Variables**
+   Create a `.env` file in the root directory (or use Streamlit secrets) and populate it with your keys:
+   ```env
+   GROQ_API_KEY="your_groq_api_key_here"
+   HUGGINGFACEHUB_API_TOKEN="your_hf_token_here"
+   PINECONE_API_KEY="your_pinecone_api_key_here"
+   PINECONE_INDEX_NAME="your_pinecone_index_name_here"
+   ```
+
+4. **Launch the Application**
+   ```bash
+   streamlit run app.py
+   ```
 
 ---
 
-## What This Project Demonstrates
+## 💡 How to Use
 
-* End-to-end LLM application development
-* Multi-source document processing and reasoning
-* Practical implementation of RAG pipelines
-* Real-world AI system for information extraction
-
----
-
-## Future Improvements
-
-* Support for more than 3 URLs
-* Real-time news API integration
-* Hybrid retrieval (BM25 + dense embeddings)
-* Summarization dashboards
-* Deployment via Streamlit Cloud or Docker
+1. **Load Articles**: Paste up to 3 news article URLs into the sidebar input fields.
+2. **Process Data**: Click **"Process URLs"**. The agent will fetch the text, filter out junk, generate vector embeddings, and store them in Pinecone under a secure, isolated session ID.
+3. **Summarize**: Click **"Summarize Articles"** to get an instant, overarching summary combining knowledge from all provided URLs.
+4. **Ask Questions**: Type your specific query into the chat bar (e.g., *"What economic policies were discussed?"*). 
+5. **Review Answers**: The agent will respond based *only* on the provided context, and you can click "View Sources" to verify exactly which text chunks it used.
 
 ---
 
-## Author
+## 🧠 Engineering Highlights
 
-**Deepesh Singh**
-AI & Agentic Systems Builder
+### Advanced Retrieval-Augmented Generation (RAG)
+* Implements a strict prompt template to bind the LLM entirely to the retrieved context, effectively mitigating hallucinations.
+* Uses Conversational Retrieval Chains with memory to understand follow-up questions.
 
-🌐 LinkedIn: [https://www.linkedin.com/in/contactdeepeshsingh/](https://www.linkedin.com/in/contactdeepeshsingh/)
-💻 GitHub: [https://github.com/singhdeepesh20](https://github.com/singhdeepesh20)
+### Intelligent Data Cleaning Pipeline
+* Scraping modern web pages introduces immense noise (cookie banners, menus). A custom junk filtering function uses heuristic keyword mapping and alphabetical ratio checks to ensure only high-quality article text is embedded.
+
+### Scalable & Clean Session Management
+* Each user gets a unique namespace inside Pinecone isolated via `uuid`.
+* An asynchronous background Python daemon routinely sweeps the vector database to purge session data older than 24 hours, ensuring 0 maintenance cost and unlimited scalability.
 
 ---
 
 <div align="center">
-
-### "Turning information overload into actionable intelligence."
-
+  <i>"Turning information overload into actionable intelligence."</i>
 </div>
-
