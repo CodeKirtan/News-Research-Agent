@@ -16,7 +16,7 @@
 
 ## 📖 Overview
 
-**News Research Agent** is a state-of-sart, AI-driven research tool designed to analyze, extract insights, and summarize multiple news articles in real time. 
+**News Research Agent** is a state-of-art, AI-driven research tool designed to analyze, extract insights, and summarize multiple news articles in real time. 
 
 Built on top of **LangChain, Groq's high-speed Llama-3, HuggingFace embeddings, and Pinecone**, the system acts as your personal AI researcher. You can ask intelligent questions across multiple sources, request comprehensive summaries, and receive context-aware answers grounded strictly in the provided articles—virtually eliminating hallucinations.
 
