@@ -13,6 +13,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from crewai import Agent, Task, Crew, Process
+from gtts import gTTS
+from groq import Groq
+import io
 
 # Load environment variables (for local testing)
 load_dotenv()
@@ -83,6 +86,22 @@ st.markdown("""
 News Research Agent
 </h1>
 """, unsafe_allow_html=True)
+
+@st.cache_data
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='en')
+    audio_fp = io.BytesIO()
+    tts.write_to_fp(audio_fp)
+    audio_fp.seek(0)
+    return audio_fp.getvalue()
+
+def transcribe_audio(audio_bytes):
+    client = Groq(api_key=GROQ_API_KEY)
+    transcription = client.audio.transcriptions.create(
+      file=("audio.wav", audio_bytes),
+      model="whisper-large-v3",
+    )
+    return transcription.text
 
 @st.cache_resource
 def get_llm():
@@ -225,9 +244,22 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # Display Chat History
-for message in st.session_state.messages:
+for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        if message["role"] == "assistant":
+            # Wait for user input to play audio instead of generating automatically
+            if st.button("🔊 Listen", key=f"listen_{idx}"):
+                st.session_state[f"play_audio_{idx}"] = True
+                
+            if st.session_state.get(f"play_audio_{idx}", False):
+                clean_text = message["content"].replace("**Summary:**\n", "").replace("*", "")
+                try:
+                    with st.spinner("Generating audio..."):
+                        audio_bytes = text_to_speech(clean_text)
+                    st.audio(audio_bytes, format='audio/mp3', autoplay=True)
+                except Exception as e:
+                    st.error(f"TTS error: {e}")
 
 # Summarize Feature
 if summarize_clicked:
@@ -285,10 +317,23 @@ if summarize_clicked:
                 st.error(f"Error summarizing: {e}")
 
 # Query Section 
-if query := st.chat_input("Ask a question about the articles:"):
-    st.session_state.messages.append({"role": "user", "content": query})
+if "audio_key" not in st.session_state:
+    st.session_state.audio_key = str(uuid.uuid4())
+
+query = st.chat_input("Ask a question about the articles:")
+audio_value = st.audio_input("Or speak your question...", key=st.session_state.audio_key)
+
+final_query = None
+if query:
+    final_query = query
+elif audio_value:
+    with st.spinner("Transcribing audio with Groq Whisper..."):
+        final_query = transcribe_audio(audio_value)
+
+if final_query:
+    st.session_state.messages.append({"role": "user", "content": final_query})
     with st.chat_message("user"):
-        st.markdown(query)
+        st.markdown(final_query)
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
@@ -301,7 +346,7 @@ if query := st.chat_input("Ask a question about the articles:"):
                 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
                 
                 # Retrieve context manually
-                source_docs = retriever.invoke(query)
+                source_docs = retriever.invoke(final_query)
                 context = "\n\n".join([f"Source: {doc.metadata.get('source', 'Unknown')}\n{doc.page_content}" for doc in source_docs])
                 
                 # Build Chat History String
@@ -333,7 +378,7 @@ Retrieved Context:
 {context}
 
 User's Question:
-{query}
+{final_query}
 """
                 
                 # Define CrewAI Task
@@ -364,5 +409,11 @@ User's Question:
                 
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
+                if audio_value:
+                    st.session_state.audio_key = str(uuid.uuid4())
+                st.rerun()
+                
             except Exception as e:
                 st.error(f"Error during retrieval: {e}")
+                if audio_value:
+                    st.session_state.audio_key = str(uuid.uuid4())

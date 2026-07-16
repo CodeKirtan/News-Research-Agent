@@ -13,6 +13,7 @@ sentence-transformers
 numpy 
 crewai==0.203.2
 litellm
+gTTS
 
 # Training (Optional)
 peft
