@@ -11,3 +11,12 @@ pandas
 pickle-mixin
 sentence-transformers
 numpy 
+crewai==0.203.2
+litellm
+
+# Training (Optional)
+peft
+trl
+datasets
+bitsandbytes
+jupyter

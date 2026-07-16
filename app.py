@@ -10,11 +10,9 @@ from langchain_groq import ChatGroq
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_classic.chains import ConversationalRetrievalChain
-from langchain_classic.memory import ConversationBufferMemory
 from langchain_pinecone import PineconeVectorStore
-from langchain_core.prompts import PromptTemplate
 from pinecone import Pinecone
+from crewai import Agent, Task, Crew, Process
 
 # Load environment variables (for local testing)
 load_dotenv()
@@ -46,8 +44,10 @@ if not all([GROQ_API_KEY, HF_TOKEN, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
     st.error("Please set GROQ_API_KEY, HUGGINGFACEHUB_API_TOKEN, PINECONE_API_KEY, and PINECONE_INDEX_NAME in your secrets or .env file.")
     st.stop()
 
-# Set env vars for Langchain Pinecone client
+# Set env vars for Langchain Pinecone client and CrewAI/Litellm
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
+if GROQ_API_KEY:
+    os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 
 # Styling
 main_bg = "https://i.ibb.co/ccRBvfz7/Screenshot-2025-08-14-at-12-14-51-PM.png"
@@ -84,16 +84,16 @@ News Research Agent
 </h1>
 """, unsafe_allow_html=True)
 
-# Caching LLM and Embeddings to improve latency
 @st.cache_resource
 def get_llm():
     return ChatGroq(
         groq_api_key=GROQ_API_KEY,
-        model="llama-3.3-70b-versatile",
+        model="groq/llama-3.3-70b-versatile",
         temperature=0.0,
         max_tokens=500
     )
 
+# Caching Embeddings to improve latency
 @st.cache_resource
 def get_embeddings():
     return HuggingFaceEmbeddings(
@@ -220,14 +220,7 @@ if process_url_clicked:
         except Exception as e:
             st.error(f"An error occurred during processing: {e}")
 
-# Initialize session state for memory
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True,
-        output_key="answer"
-    )
-
+# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -260,9 +253,33 @@ if summarize_clicked:
                 # Format context explicitly with the source URL
                 context = "\n\n".join([f"Source: {doc.metadata.get('source', 'Unknown')}\n{doc.page_content}" for doc in selected_docs])
                 
-                prompt = f"Please provide a comprehensive summary of the following articles. Give an overview of the key points for EACH article.\n\nContext:\n{context}"
-                response = llm.invoke(prompt)
-                st.session_state.messages.append({"role": "assistant", "content": f"**Summary:**\n{response.content}"})
+                # Define CrewAI Agent
+                summarizer_agent = Agent(
+                    role='Senior News Editor',
+                    goal='Synthesize complex news articles into clear, comprehensive, and accurate summaries.',
+                    backstory='You are an expert news editor with decades of experience at top-tier publications. You excel at extracting the most critical points from multiple sources and presenting them in a cohesive overview.',
+                    verbose=False,
+                    allow_delegation=False,
+                    llm=llm
+                )
+                
+                # Define CrewAI Task
+                summary_task = Task(
+                    description=f"Provide a comprehensive summary of the following articles. Give an overview of the key points for EACH article.\n\nContext:\n{context}",
+                    expected_output="A well-structured markdown summary of the articles, highlighting key points from each source.",
+                    agent=summarizer_agent
+                )
+                
+                # Execute Crew
+                crew = Crew(
+                    agents=[summarizer_agent],
+                    tasks=[summary_task],
+                    verbose=False
+                )
+                
+                result = crew.kickoff()
+                
+                st.session_state.messages.append({"role": "assistant", "content": f"**Summary:**\n{str(result)}"})
                 st.rerun()
             except Exception as e:
                 st.error(f"Error summarizing: {e}")
@@ -283,35 +300,58 @@ if query := st.chat_input("Ask a question about the articles:"):
                 )
                 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
                 
-                # Define a strict prompt template to constrain the LLM
-                strict_prompt_template = """You are a specialized News Research Assistant. 
-You must ONLY answer the user's question based on the following context retrieved from the provided news articles.
+                # Retrieve context manually
+                source_docs = retriever.invoke(query)
+                context = "\n\n".join([f"Source: {doc.metadata.get('source', 'Unknown')}\n{doc.page_content}" for doc in source_docs])
+                
+                # Build Chat History String
+                chat_history = ""
+                for msg in st.session_state.messages[:-1]: # exclude the latest user query
+                    role = "User" if msg["role"] == "user" else "Assistant"
+                    chat_history += f"{role}: {msg['content']}\n"
+                if not chat_history:
+                    chat_history = "No previous history."
+
+                # Define CrewAI Agent
+                qa_agent = Agent(
+                    role='Principal News Researcher',
+                    goal='Provide precise, fact-based answers grounded strictly in retrieved context.',
+                    backstory='You are a meticulous researcher who NEVER hallucinates. You only provide information that is explicitly stated in the provided context documents. If the context does not contain the answer, you state that you do not know.',
+                    verbose=False,
+                    allow_delegation=False,
+                    llm=llm
+                )
+                
+                task_description = f"""
+You must ONLY answer the user's question based on the following context retrieved from news articles.
 If the answer is not explicitly contained in the context, you must respond with: "I don't know based on the provided articles." Do not attempt to guess or use outside knowledge.
 
-Context:
+Chat History:
+{chat_history}
+
+Retrieved Context:
 {context}
 
-Question:
-{question}
-
-Answer:"""
-                STRICT_PROMPT = PromptTemplate(
-                    template=strict_prompt_template, 
-                    input_variables=["context", "question"]
+User's Question:
+{query}
+"""
+                
+                # Define CrewAI Task
+                qa_task = Task(
+                    description=task_description,
+                    expected_output="A direct, factual answer to the user's question based solely on the provided context.",
+                    agent=qa_agent
                 )
                 
-                # We use ConversationalRetrievalChain for memory context
-                qa_chain = ConversationalRetrievalChain.from_llm(
-                    llm=llm,
-                    retriever=retriever,
-                    memory=st.session_state.memory,
-                    return_source_documents=True,
-                    combine_docs_chain_kwargs={"prompt": STRICT_PROMPT}
+                # Execute Crew
+                crew = Crew(
+                    agents=[qa_agent],
+                    tasks=[qa_task],
+                    verbose=False
                 )
                 
-                result = qa_chain({"question": query})
-                answer = result["answer"]
-                source_docs = result.get("source_documents", [])
+                result = crew.kickoff()
+                answer = str(result)
                 
                 # Formatting the answer
                 st.markdown(answer)
