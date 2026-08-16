@@ -107,7 +107,7 @@ def transcribe_audio(audio_bytes):
 def get_llm():
     return ChatGroq(
         groq_api_key=GROQ_API_KEY,
-        model="groq/llama-3.3-70b-versatile",
+        model="groq/llama-3.1-70b-versatile",
         temperature=0.0,
         max_tokens=500
     )
